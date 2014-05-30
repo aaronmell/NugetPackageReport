@@ -46,9 +46,11 @@ namespace NugetPackageReport
 
                 var latestVersion = feedPackages.OrderByDescending(x => x, new FeedPackageVersionComparer()).FirstOrDefault();
 
-                if (FeedPackages.ContainsKey(package))
+                var key = FeedPackages.Keys.FirstOrDefault(x => x.ID == package.ID && x.Version == package.Version);
+
+                if (key != null)
                 {
-                    FeedPackages[package].Count++;
+                    FeedPackages[key].Count++;
                 }
                 else
                 {
