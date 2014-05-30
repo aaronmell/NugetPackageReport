@@ -15,11 +15,16 @@ namespace NugetPackageReport
 
         public static void RecurseDirectory(V1FeedContext feed, string path)
         {
-            foreach (var directory in Directory.GetDirectories(path))
+            Stack<string> directories = new Stack<string>(20);
+            directories.Push(path);
+
+            while (directories.Count > 0)
             {
+                var directory = directories.Pop();
+
                 var files = Directory.GetFiles(directory);
 
-                var packagePaths = files.Where(x => x.Contains("packages.config"));
+                var packagePaths = files.Where(x => x.ToLower().Contains("packages.config"));
 
                 if (packagePaths.Any())
                 {
@@ -27,11 +32,15 @@ namespace NugetPackageReport
 
                     ProcessPackages(feed, packages);
                 }
-
-                //Using the where clause to cut down on the number of directories that need to be traversed
-                foreach (var directoryToSearch in Directory.GetDirectories(directory).Where(x => x != "bin" && x != "obj" && x != "Properties" && x != "packages" && x != ".nuget"))
+                 
+                if (!files.Any(x => x.ToLower().Contains("csproj")))
                 {
-                    RecurseDirectory(feed, directoryToSearch);
+                    var subDirectories = Directory.GetDirectories(directory).Where(x => x != "packages" && x != ".nuget");
+                    
+                    foreach (var dir in subDirectories)
+                    {
+                        directories.Push(dir);
+                    }
                 }
             }
         }
