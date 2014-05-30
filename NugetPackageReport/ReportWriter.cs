@@ -43,6 +43,11 @@ namespace NugetPackageReport
 
         private static void WritePackageRow(HtmlTextWriter writer, KeyValuePair<PackageConfig, FeedPackage> package)
         {
+            if (package.Value.CurrentVersion.Version != package.Value.LatestVersion.Version)
+            {
+                writer.AddAttribute(HtmlTextWriterAttribute.Bgcolor, "#CCCC00;");
+            }
+          
             writer.RenderBeginTag(HtmlTextWriterTag.Tr);
 
             writer.RenderBeginTag(HtmlTextWriterTag.Td);
