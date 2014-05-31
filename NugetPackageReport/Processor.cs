@@ -24,29 +24,34 @@ namespace NugetPackageReport
 
                 var files = Directory.GetFiles(directory);
 
-                var packagePaths = files.Where(x => x.ToLower().Contains("packages.config"));
-
-                if (packagePaths.Any())
+                var packagePaths = files.Where(x => x.ToLower().EndsWith("packages.config")).ToList();
+	            var project = files.FirstOrDefault(x => x.ToLower().Contains("csproj"));
+                
+				if (packagePaths.Any())
                 {
                     var packages = GetPackages(packagePaths);
 
-                    ProcessPackages(feed, packages);
+                    ProcessPackages(feed, packages, project);
                 }
-                 
-                if (!files.Any(x => x.ToLower().Contains("csproj")))
-                {
-                    var subDirectories = Directory.GetDirectories(directory).Where(x => x != "packages" && x != ".nuget");
+
+	            if (project != null)
+	            {
+		            continue;
+	            }
+
+	            var subDirectories = Directory.GetDirectories(directory).Where(x => x != "packages" && x != ".nuget");
                     
-                    foreach (var dir in subDirectories)
-                    {
-                        directories.Push(dir);
-                    }
-                }
+	            foreach (var dir in subDirectories)
+	            {
+		            directories.Push(dir);
+	            }
             }
         }
 
-        private static void ProcessPackages(V1FeedContext feed, List<PackageConfig> packages)
+        private static void ProcessPackages(V1FeedContext feed, List<PackageConfig> packages, string projectPath)
         {
+	        var projectFileName = Path.GetFileNameWithoutExtension(projectPath);
+
             foreach (var package in packages)
             {
                 var feedPackages = feed.Packages.Where(x => x.Id == package.ID).ToList();
@@ -59,15 +64,24 @@ namespace NugetPackageReport
 
                 if (key != null)
                 {
-                    FeedPackages[key].Count++;
+                    FeedPackages[key].ProjectNames.Add(projectFileName);
                 }
                 else
                 {
                     FeedPackages.Add(package, new FeedPackage
                     {
-                        CurrentVersion = currentVersion,
-                        LatestVersion = latestVersion,
-                        Count = 1
+                        CurrentVersion = currentVersion ?? new V1FeedPackage
+                        {
+	                        Id = package.ID,
+							Version =  package.Version
+                        },
+                        LatestVersion = latestVersion ?? new V1FeedPackage
+                        {
+	                        Id = package.ID,
+							Version =  package.Version
+                        },
+						ProjectNames = new List<string> { projectFileName },
+                        
                     });
                 }
             }

@@ -13,6 +13,7 @@ namespace NugetPackageReport
 
         public V1FeedPackage LatestVersion { get; set; }
 
-        public int Count { get; set; }
+		public List<string> ProjectNames { get; set; }
+        
     }
 }
