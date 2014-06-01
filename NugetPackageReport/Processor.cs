@@ -7,13 +7,20 @@ using System.Xml.Linq;
 
 namespace NugetPackageReport
 {
-    public static class Processor
+	/// <summary>
+	/// Handles Processing the input path and finding all of the nuget packages used by the projects
+	/// </summary>
+    internal static class Processor
     {
-		public static Dictionary<PackageConfig, FeedPackage> FeedPackages = new Dictionary<PackageConfig, FeedPackage>();
-		
-		public static void ProcessDirectory(string path)
+		/// <summary>
+		/// Proceesses the path and returns all of the the nuget packags found
+		/// </summary>
+		/// <param name="path">The path to process</param>
+		/// <returns>A dictionary that contains the packages found during the search</returns>
+		internal static Dictionary<PackageKey, FeedPackage> Process(string path)
         {
-			var feed = new V1FeedContext(new Uri("http://packages.nuget.org/v1/FeedService.svc"));
+			var v1FeedContext = new V1FeedContext(new Uri("http://packages.nuget.org/v1/FeedService.svc"));
+			var feedPackages = new Dictionary<PackageKey, FeedPackage>();
 
             var directories = new Stack<string>(20);
             directories.Push(path);
@@ -25,16 +32,16 @@ namespace NugetPackageReport
                 var files = Directory.GetFiles(directory);
 
                 var packagePaths = files.Where(x => x.ToLower().EndsWith("packages.config")).ToList();
-	            var project = files.FirstOrDefault(x => x.ToLower().Contains("csproj"));
+	            var projectName = files.FirstOrDefault(x => x.ToLower().Contains("csproj"));
                 
 				if (packagePaths.Any())
                 {
-                    var packages = GetPackages(packagePaths);
+                    var packageConfigs = GetPackages(packagePaths);
 
-                    ProcessPackages(feed, packages, project);
+                    ProcessPackages(feedPackages, v1FeedContext, packageConfigs, projectName);
                 }
 
-	            if (project != null)
+	            if (projectName != null)
 	            {
 		            continue;
 	            }
@@ -46,31 +53,32 @@ namespace NugetPackageReport
 		            directories.Push(dir);
 	            }
             }
+			return feedPackages;
         }
 
-        private static void ProcessPackages(V1FeedContext feed, IEnumerable<PackageConfig> packages, string projectPath)
+        private static void ProcessPackages(Dictionary<PackageKey, FeedPackage> feedPackageDictionary, V1FeedContext feed, IEnumerable<PackageKey> packages, string projectPath)
         {
 	        var projectFileName = Path.GetFileNameWithoutExtension(projectPath);
 
             foreach (var package in packages)
             {
-				var key = FeedPackages.Keys.FirstOrDefault(x => x.ID == package.ID && x.Version == package.Version);
+				var key = feedPackageDictionary.Keys.FirstOrDefault(x => x.Id == package.Id && x.Version == package.Version);
 
 	            if (key != null)
 	            {
-		            FeedPackages[key].ProjectNames.Add(projectFileName);
+		            feedPackageDictionary[key].ProjectNames.Add(projectFileName);
 	            }
 	            else
 	            {
 		            var package1 = package;
-		            var feedPackages = feed.Packages.Where(x => x.Id == package1.ID).ToList();
+		            var v1FeedPackages = feed.Packages.Where(x => x.Id == package1.Id).ToList();
 
-		            var currentVersion = feedPackages.FirstOrDefault(x => x.Version == package1.Version);
+		            var currentVersion = v1FeedPackages.FirstOrDefault(x => x.Version == package1.Version);
 
 		            var latestVersion =
-			            feedPackages.OrderByDescending(x => x, new FeedPackageVersionComparer()).FirstOrDefault();
+			            v1FeedPackages.OrderByDescending(x => x, new FeedPackageVersionComparer()).FirstOrDefault();
 
-		            FeedPackages.Add(package, new FeedPackage
+		            feedPackageDictionary.Add(package, new FeedPackage
 		            {
 			            CurrentVersion = currentVersion, 
 			            LatestVersion = latestVersion,
@@ -84,21 +92,17 @@ namespace NugetPackageReport
             }
         }
 
-        private static IEnumerable<PackageConfig> GetPackages(IEnumerable<string> packagePaths)
+        private static IEnumerable<PackageKey> GetPackages(IEnumerable<string> packagePaths)
         {
-            var packages = new List<PackageConfig>();
+            var packages = new List<PackageKey>();
 
-            foreach (var packagePath in packagePaths)
+            foreach (var children in packagePaths.Select(XDocument.Load).Select(doc => doc.Elements().Elements()))
             {
-                var doc = XDocument.Load(packagePath);
-
-                var children = doc.Elements().Elements();
-
-                packages = children.Select(x => new PackageConfig
-                {
-                    ID = x.Attribute("id").Value,
-                    Version = x.Attribute("version").Value,
-                }).ToList();
+	            packages = children.Select(x => new PackageKey
+	            {
+		            Id = x.Attribute("id").Value,
+		            Version = x.Attribute("version").Value,
+	            }).ToList();
             }
             return packages;
         }     

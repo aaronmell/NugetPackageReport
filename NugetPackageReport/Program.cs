@@ -4,11 +4,18 @@ using System.Linq;
 
 namespace NugetPackageReport
 {
-    class Program
+	/// <summary>
+	/// Main Program
+	/// </summary>
+    public class Program
     {
-        private static string inputPath;
-        private static string outputPath;
+        private static string _inputPath;
+        private static string _outputPath;
 
+		/// <summary>
+		/// Entry point for program
+		/// </summary>
+		/// <param name="args">Arguments for Program, First argument is the input path and second argument is the output path</param>
         static void Main(string[] args)
         {
 	       
@@ -17,9 +24,9 @@ namespace NugetPackageReport
                 return;
             }
 
-            Processor.ProcessDirectory(inputPath);
+            var results = Processor.Process(_inputPath);
             
-            ReportWriter.GenerateReport(inputPath, outputPath, Processor.FeedPackages);  
+            ReportWriter.GenerateReport(_inputPath, _outputPath, results);  
         }
 
         private static bool ValidateArguments(string[] args)
@@ -33,16 +40,16 @@ namespace NugetPackageReport
 			var result = TestPath(args[0], "Input");
 
 			if (!result)
-				return result;
+				return false;
 
-			inputPath = args[0];
+			_inputPath = args[0];
 
 			result = TestPath(args[1], "Output");
 
 			if (!result)
-				return result;
+				return false;
 
-			outputPath = args[1];
+			_outputPath = args[1];
 
 			return true;
         }
@@ -62,7 +69,7 @@ namespace NugetPackageReport
            }
            catch(Exception)
            {
-               Console.WriteLine("The {0} directory is not a valid file path",outputMessageType);
+               Console.WriteLine("The {0} directory is not a valid file path", outputMessageType);
            }
             return false;
         }

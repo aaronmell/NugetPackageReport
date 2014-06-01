@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Web.UI;
@@ -7,19 +6,28 @@ using System.Linq;
 
 namespace NugetPackageReport
 {
-    public static class ReportWriter
+	/// <summary>
+	/// The Report Writer class. Handles all functions related to generation of the different html pages
+	/// </summary>
+    internal static class ReportWriter
     {
 	    private const string GeneralPageFileName = "Overview.html";
 	    private const string ProjectPageFileName = "Projects.html";
 
-        public static void GenerateReport(string inputFilePath, string outputFilePath, Dictionary<PackageConfig, FeedPackage> feedPackages)
+		/// <summary>
+		/// Generates the Html Reports
+		/// </summary>
+		/// <param name="inputFilePath">The input path that was searched</param>
+		/// <param name="outputFilePath">The path to the output directory of the report</param>
+		/// <param name="feedPackages">The packages that were found during the search</param>
+        internal static void GenerateReport(string inputFilePath, string outputFilePath, Dictionary<PackageKey, FeedPackage> feedPackages)
         {
 	        GenerateGeneralPage(inputFilePath, outputFilePath, feedPackages);
 			GenerateProjectPage(inputFilePath, outputFilePath, feedPackages);
 	        GeneratePackagePages(outputFilePath, feedPackages);
         }
 
-		private static void GeneratePackagePages(string outputFilePath, Dictionary<PackageConfig, FeedPackage> feedPackages)
+		private static void GeneratePackagePages(string outputFilePath, Dictionary<PackageKey, FeedPackage> feedPackages)
 		{
 			foreach (var package in feedPackages.Where(x => x.Value.CurrentVersion != null))
 			{
@@ -104,6 +112,48 @@ namespace NugetPackageReport
 			}
 		}
 
+		private static void GenerateProjectPage(string inputFilePath, string outputFilePath,
+												Dictionary<PackageKey, FeedPackage> feedPackages)
+		{
+			using (var stringWriter = new StringWriter())
+			{
+				using (var writer = new HtmlTextWriter(stringWriter))
+				{
+					writer.RenderBeginTag(HtmlTextWriterTag.H1);
+					{
+						writer.WriteLine("Nuget Package Report Projects by Package");
+					}
+					writer.RenderEndTag();
+
+					writer.WriteGeneralInformation(inputFilePath, feedPackages);
+					writer.WriteBreak();
+
+					foreach (var package in feedPackages)
+					{
+						writer.RenderBeginTag(HtmlTextWriterTag.H3);
+						{
+							writer.WriteUrlLink(string.Format("{0}{1}.html", package.Key.Id, package.Key.Version), string.Format("{0} {1}", package.Key.Id, package.Key.Version));
+							writer.WriteBreak();
+						}
+						writer.RenderEndTag();
+
+						foreach (var project in package.Value.ProjectNames.OrderBy(x => x))
+						{
+							writer.WriteLine(project);
+							writer.WriteBreak();
+						}
+						writer.WriteBreak();
+					}
+
+					var content = writer.InnerWriter.ToString();
+
+					var path = Path.Combine(outputFilePath, ProjectPageFileName);
+					File.WriteAllText(path, content);
+					System.Diagnostics.Process.Start(path);
+				}
+			}
+		}
+
 		private static void WritePackageInfoLine(this HtmlTextWriter writer, string title, string value )
 		{
 			writer.RenderBeginTag(HtmlTextWriterTag.B);
@@ -125,50 +175,7 @@ namespace NugetPackageReport
 			writer.WriteBreak();
 		}
 
-
-	    private static void GenerateProjectPage(string inputFilePath, string outputFilePath,
-	                                            Dictionary<PackageConfig, FeedPackage> feedPackages)
-	    {
-		    using (var stringWriter = new StringWriter())
-		    {
-			    using (var writer = new HtmlTextWriter(stringWriter))
-			    {
-					writer.RenderBeginTag(HtmlTextWriterTag.H1);
-					{
-						writer.WriteLine("Nuget Package Report Projects by Package");
-					}
-					writer.RenderEndTag();
-
-					writer.WriteGeneralInformation(inputFilePath, feedPackages);
-					writer.WriteBreak();
-					
-						foreach (var package in feedPackages)
-						{
-							writer.RenderBeginTag(HtmlTextWriterTag.H3);
-							{	
-								writer.WriteUrlLink(string.Format("{0}{1}.html",package.Key.ID, package.Key.Version), string.Format("{0} {1}", package.Key.ID, package.Key.Version));
-								writer.WriteBreak();
-							}
-							writer.RenderEndTag();
-
-							foreach (var project in package.Value.ProjectNames.OrderBy(x => x))
-							{
-								writer.WriteLine(project);
-								writer.WriteBreak();
-							}
-							writer.WriteBreak();
-						}
-
-					var content = writer.InnerWriter.ToString();
-
-					var path = Path.Combine(outputFilePath, ProjectPageFileName);
-					File.WriteAllText(path, content);
-					System.Diagnostics.Process.Start(path);
-			    }
-		    }
-	    }
-
-	    private static void GenerateGeneralPage(string inputFilePath, string outputFilePath, Dictionary<PackageConfig, FeedPackage> feedPackages)
+		private static void GenerateGeneralPage(string inputFilePath, string outputFilePath, Dictionary<PackageKey, FeedPackage> feedPackages)
 		{
 			using (var stringWriter = new StringWriter())
 			{
@@ -204,7 +211,7 @@ namespace NugetPackageReport
 			}
 		}
 
-        private static void WriteGeneralPagePackageRows(HtmlTextWriter writer, KeyValuePair<PackageConfig, FeedPackage> package)
+        private static void WriteGeneralPagePackageRows(HtmlTextWriter writer, KeyValuePair<PackageKey, FeedPackage> package)
         {
             if (package.Value.CurrentVersion != null && package.Value.LatestVersion != null && package.Value.CurrentVersion.Version != package.Value.LatestVersion.Version)
             {
@@ -223,19 +230,14 @@ namespace NugetPackageReport
 		        }
 				else
 				{
-					writer.WriteTableColumn(package.Key.ID);
+					writer.WriteTableColumn(package.Key.Id);
 				}
 
 		        writer.WriteTableColumn(package.Key.Version);
 
-				if (package.Value.LatestVersion != null)
-				{
-					writer.WriteTableColumn(package.Value.LatestVersion.Version);
-				}
-				else
-				{
-					writer.WriteTableColumn("Unknown");
-				}
+		        writer.WriteTableColumn(package.Value.LatestVersion != null
+			                                ? package.Value.LatestVersion.Version
+			                                : "Unknown");
 
 		        writer.RenderBeginTag(HtmlTextWriterTag.Td);
 		        {
@@ -286,7 +288,7 @@ namespace NugetPackageReport
 		}
 	
 		private static void WriteGeneralInformation(this HtmlTextWriter writer, string inputFilePath,
-		                                            Dictionary<PackageConfig, FeedPackage> feedPackages)
+		                                            Dictionary<PackageKey, FeedPackage> feedPackages)
 		{
 			writer.WriteBreak();
 					writer.WriteLine("Searched Directory {0}",inputFilePath);

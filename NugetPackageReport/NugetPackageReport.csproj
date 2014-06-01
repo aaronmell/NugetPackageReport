@@ -63,7 +63,7 @@
     <Compile Include="FeedPackage.cs" />
     <Compile Include="FeedPackageVersionComparer.cs" />
     <Compile Include="Processor.cs" />
-    <Compile Include="PackageConfig.cs" />
+    <Compile Include="PackageKey.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ReportWriter.cs" />
