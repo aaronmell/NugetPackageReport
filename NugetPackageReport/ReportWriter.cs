@@ -17,7 +17,114 @@ namespace NugetPackageReport
 	       
 	        GenerateProjectPage(inputFilePath, outputFilePath, feedPackages);
 			GenerateGeneralPage(inputFilePath, outputFilePath, feedPackages);
+	        GeneratePackagePages(outputFilePath, feedPackages);
         }
+
+		private static void GeneratePackagePages(string outputFilePath, Dictionary<PackageConfig, FeedPackage> feedPackages)
+		{
+			foreach (var package in feedPackages.Where(x => x.Value.CurrentVersion != null))
+			{
+				using (var stringWriter = new StringWriter())
+				{
+					using (var writer = new HtmlTextWriter(stringWriter))
+					{
+						writer.RenderBeginTag(HtmlTextWriterTag.H1);
+						{
+							writer.WriteLine("Nuget Package Report for {0} {1}", package.Value.CurrentVersion.Id, package.Value.CurrentVersion.Version);
+						}
+						writer.RenderEndTag();
+
+						writer.WriteBreak();
+						writer.WriteBreak();
+
+						writer.WritePackageInfoLine("Description", package.Value.CurrentVersion.Description);
+						writer.WritePackageInfoLine("Created", package.Value.CurrentVersion.Created.ToShortDateString());
+						writer.WritePackageInfoLine("Last Updated", package.Value.CurrentVersion.LastUpdated.ToShortDateString());
+						writer.WritePackageInfoLine("Release Notes", package.Value.CurrentVersion.ReleaseNotes);
+						
+						writer.RenderBeginTag(HtmlTextWriterTag.B);
+						{
+							writer.WriteLine("License Url");
+						}
+						writer.RenderEndTag();
+						writer.WriteBreak();
+
+						if (!string.IsNullOrEmpty(package.Value.CurrentVersion.LicenseUrl))		
+						{
+							writer.WriteUrlLink(package.Value.CurrentVersion.LicenseUrl, package.Value.CurrentVersion.LicenseUrl);
+						}
+						else
+						{
+							writer.WriteLine("No License Url");
+						}
+						writer.WriteBreak();
+						writer.WriteBreak();
+						
+						writer.RenderBeginTag(HtmlTextWriterTag.B);
+						{
+							writer.WriteLine("Project Url");
+						}
+						writer.RenderEndTag();
+						writer.WriteBreak();
+
+						if (!string.IsNullOrEmpty(package.Value.CurrentVersion.ProjectUrl))		
+						{
+							writer.WriteUrlLink(package.Value.CurrentVersion.ProjectUrl, package.Value.CurrentVersion.ProjectUrl);
+						}
+						else
+						{
+							writer.WriteLine("No Project Url");
+						}
+						writer.WriteBreak();
+						writer.WriteBreak();
+
+						writer.RenderBeginTag(HtmlTextWriterTag.B);
+						{
+							writer.WriteLine("Gallery Details Url");
+						}
+						writer.RenderEndTag();
+						writer.WriteBreak();
+
+						if (!string.IsNullOrEmpty(package.Value.CurrentVersion.GalleryDetailsUrl))						
+						{
+							writer.WriteUrlLink(package.Value.CurrentVersion.GalleryDetailsUrl, package.Value.CurrentVersion.GalleryDetailsUrl);
+						}
+						else
+						{
+							writer.WriteLine("No Gallery Details Url");
+						}
+						writer.WriteBreak();
+						writer.WriteBreak();
+
+						var content = writer.InnerWriter.ToString();
+
+						var path = Path.Combine(outputFilePath, string.Format("{0}{1}.html",package.Value.CurrentVersion.Id, package.Value.CurrentVersion.Version));
+						File.WriteAllText(path, content);
+					}
+				}
+			}
+		}
+
+		private static void WritePackageInfoLine(this HtmlTextWriter writer, string title, string value )
+		{
+			writer.RenderBeginTag(HtmlTextWriterTag.B);
+			{
+				writer.WriteLine(title);
+				writer.WriteBreak();
+			}
+			writer.RenderEndTag();
+
+			if (!string.IsNullOrEmpty(value))
+			{
+				writer.WriteLine(value);
+			}
+			else
+			{
+				writer.WriteLine("No {0} Provided", title);
+			}
+			writer.WriteBreak();
+			writer.WriteBreak();
+		}
 
 
 	    private static void GenerateProjectPage(string inputFilePath, string outputFilePath,
@@ -40,7 +147,7 @@ namespace NugetPackageReport
 						{
 							writer.RenderBeginTag(HtmlTextWriterTag.B);
 							{
-								writer.WriteLine("Package Id: {0} Version: {1}", package.Value.CurrentVersion.Id, package.Value.CurrentVersion.Version);
+								writer.WriteLine("Package Id: {0} Version: {1}", package.Key.ID, package.Key.Version);
 								writer.WriteBreak();
 							}
 							writer.RenderEndTag();
@@ -104,28 +211,46 @@ namespace NugetPackageReport
 
         private static void WriteGeneralPagePackageRows(HtmlTextWriter writer, KeyValuePair<PackageConfig, FeedPackage> package)
         {
-            if (package.Value.CurrentVersion.Version != package.Value.LatestVersion.Version)
+            if (package.Value.CurrentVersion != null && package.Value.LatestVersion != null && package.Value.CurrentVersion.Version != package.Value.LatestVersion.Version)
             {
                 writer.AddAttribute(HtmlTextWriterAttribute.Bgcolor, "#CCCC00;");
             }
           
             writer.RenderBeginTag(HtmlTextWriterTag.Tr);
 	        {
-		        writer.WriteTableColumn(package.Value.CurrentVersion.Id);
+				if (package.Value.CurrentVersion != null)
+		        {
+			        writer.RenderBeginTag(HtmlTextWriterTag.Td);
+			        {
+						writer.WriteUrlLink(string.Format("{0}{1}.html", package.Value.CurrentVersion.Id, package.Value.CurrentVersion.Version), package.Value.CurrentVersion.Id);
+			        }
+					writer.RenderEndTag();
+		        }
+				else
+				{
+					writer.WriteTableColumn(package.Key.ID);
+				}
 
-		        writer.WriteTableColumn(package.Value.CurrentVersion.Version);
+		        writer.WriteTableColumn(package.Key.Version);
 
-		        writer.WriteTableColumn(package.Value.LatestVersion.Version);
+				if (package.Value.LatestVersion != null)
+				{
+					writer.WriteTableColumn(package.Value.LatestVersion.Version);
+				}
+				else
+				{
+					writer.WriteTableColumn("Unknown");
+				}
 
 		        writer.RenderBeginTag(HtmlTextWriterTag.Td);
 		        {
-			        if (!string.IsNullOrEmpty(package.Value.LatestVersion.LicenseUrl))
+			        if (package.Value.CurrentVersion != null && !string.IsNullOrEmpty(package.Value.CurrentVersion.LicenseUrl))
 			        {
 				        writer.WriteUrlLink(package.Value.CurrentVersion.LicenseUrl, "License");
 			        }
 			        else
 			        {
-				        writer.Write("No License Url");
+				        writer.Write("Not Found");
 			        }
 		        }
 		        writer.RenderEndTag();

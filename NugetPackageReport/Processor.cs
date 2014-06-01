@@ -72,16 +72,8 @@ namespace NugetPackageReport
 
 		            FeedPackages.Add(package, new FeedPackage
 		            {
-			            CurrentVersion = currentVersion ?? new V1FeedPackage
-			            {
-				            Id = package.ID,
-				            Version = package.Version
-			            },
-			            LatestVersion = latestVersion ?? new V1FeedPackage
-			            {
-				            Id = package.ID,
-				            Version = package.Version
-			            },
+			            CurrentVersion = currentVersion, 
+			            LatestVersion = latestVersion,
 			            ProjectNames = new List<string>
 			            {
 				            projectFileName
