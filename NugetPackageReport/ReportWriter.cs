@@ -14,9 +14,8 @@ namespace NugetPackageReport
 
         public static void GenerateReport(string inputFilePath, string outputFilePath, Dictionary<PackageConfig, FeedPackage> feedPackages)
         {
-	       
-	        GenerateProjectPage(inputFilePath, outputFilePath, feedPackages);
-			GenerateGeneralPage(inputFilePath, outputFilePath, feedPackages);
+	        GenerateGeneralPage(inputFilePath, outputFilePath, feedPackages);
+			GenerateProjectPage(inputFilePath, outputFilePath, feedPackages);
 	        GeneratePackagePages(outputFilePath, feedPackages);
         }
 
@@ -145,14 +144,14 @@ namespace NugetPackageReport
 					
 						foreach (var package in feedPackages)
 						{
-							writer.RenderBeginTag(HtmlTextWriterTag.B);
-							{
-								writer.WriteLine("Package Id: {0} Version: {1}", package.Key.ID, package.Key.Version);
+							writer.RenderBeginTag(HtmlTextWriterTag.H3);
+							{	
+								writer.WriteUrlLink(string.Format("{0}{1}.html",package.Key.ID, package.Key.Version), string.Format("{0} {1}", package.Key.ID, package.Key.Version));
 								writer.WriteBreak();
 							}
 							writer.RenderEndTag();
 
-							foreach (var project in package.Value.ProjectNames)
+							foreach (var project in package.Value.ProjectNames.OrderBy(x => x))
 							{
 								writer.WriteLine(project);
 								writer.WriteBreak();
@@ -164,6 +163,7 @@ namespace NugetPackageReport
 
 					var path = Path.Combine(outputFilePath, ProjectPageFileName);
 					File.WriteAllText(path, content);
+					System.Diagnostics.Process.Start(path);
 			    }
 		    }
 	    }
@@ -181,11 +181,6 @@ namespace NugetPackageReport
 					writer.RenderEndTag();
 
 					writer.WriteGeneralInformation(inputFilePath, feedPackages);
-					writer.WriteBreak();
-
-
-					var projectPath = Path.Combine(outputFilePath, ProjectPageFileName);
-					writer.WriteUrlLink(new Uri(projectPath).AbsoluteUri, "Project by Package");
 					writer.WriteBreak();
 
 					writer.RenderBeginTag("table");
