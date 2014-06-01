@@ -3,19 +3,19 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace NugetPackageReport
 {
     public static class Processor
     {
-        public static Dictionary<PackageConfig, FeedPackage> FeedPackages = new Dictionary<PackageConfig, FeedPackage>();
-
-        public static void RecurseDirectory(V1FeedContext feed, string path)
+		public static Dictionary<PackageConfig, FeedPackage> FeedPackages = new Dictionary<PackageConfig, FeedPackage>();
+		
+		public static void ProcessDirectory(string path)
         {
-            Stack<string> directories = new Stack<string>(20);
+			var feed = new V1FeedContext(new Uri("http://packages.nuget.org/v1/FeedService.svc"));
+
+            var directories = new Stack<string>(20);
             directories.Push(path);
 
             while (directories.Count > 0)
@@ -48,47 +48,51 @@ namespace NugetPackageReport
             }
         }
 
-        private static void ProcessPackages(V1FeedContext feed, List<PackageConfig> packages, string projectPath)
+        private static void ProcessPackages(V1FeedContext feed, IEnumerable<PackageConfig> packages, string projectPath)
         {
 	        var projectFileName = Path.GetFileNameWithoutExtension(projectPath);
 
             foreach (var package in packages)
             {
-                var feedPackages = feed.Packages.Where(x => x.Id == package.ID).ToList();
+				var key = FeedPackages.Keys.FirstOrDefault(x => x.ID == package.ID && x.Version == package.Version);
 
-                var currentVersion = feedPackages.FirstOrDefault(x => x.Version == package.Version);
+	            if (key != null)
+	            {
+		            FeedPackages[key].ProjectNames.Add(projectFileName);
+	            }
+	            else
+	            {
+		            var package1 = package;
+		            var feedPackages = feed.Packages.Where(x => x.Id == package1.ID).ToList();
 
-                var latestVersion = feedPackages.OrderByDescending(x => x, new FeedPackageVersionComparer()).FirstOrDefault();
+		            var currentVersion = feedPackages.FirstOrDefault(x => x.Version == package1.Version);
 
-                var key = FeedPackages.Keys.FirstOrDefault(x => x.ID == package.ID && x.Version == package.Version);
+		            var latestVersion =
+			            feedPackages.OrderByDescending(x => x, new FeedPackageVersionComparer()).FirstOrDefault();
 
-                if (key != null)
-                {
-                    FeedPackages[key].ProjectNames.Add(projectFileName);
-                }
-                else
-                {
-                    FeedPackages.Add(package, new FeedPackage
-                    {
-                        CurrentVersion = currentVersion ?? new V1FeedPackage
-                        {
-	                        Id = package.ID,
-							Version =  package.Version
-                        },
-                        LatestVersion = latestVersion ?? new V1FeedPackage
-                        {
-	                        Id = package.ID,
-							Version =  package.Version
-                        },
-						ProjectNames = new List<string> { projectFileName },
-                        
-                    });
-                }
+		            FeedPackages.Add(package, new FeedPackage
+		            {
+			            CurrentVersion = currentVersion ?? new V1FeedPackage
+			            {
+				            Id = package.ID,
+				            Version = package.Version
+			            },
+			            LatestVersion = latestVersion ?? new V1FeedPackage
+			            {
+				            Id = package.ID,
+				            Version = package.Version
+			            },
+			            ProjectNames = new List<string>
+			            {
+				            projectFileName
+			            },
+
+		            });
+	            }
             }
-
         }
 
-        private static List<PackageConfig> GetPackages(IEnumerable<string> packagePaths)
+        private static IEnumerable<PackageConfig> GetPackages(IEnumerable<string> packagePaths)
         {
             var packages = new List<PackageConfig>();
 
@@ -104,7 +108,6 @@ namespace NugetPackageReport
                     Version = x.Attribute("version").Value,
                 }).ToList();
             }
-
             return packages;
         }     
     }
