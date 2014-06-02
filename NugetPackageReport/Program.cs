@@ -4,74 +4,56 @@ using System.Linq;
 
 namespace NugetPackageReport
 {
-	/// <summary>
-	/// Main Program
-	/// </summary>
+    /// <summary>
+    /// Main Program
+    /// </summary>
     public class Program
     {
-        private static string _inputPath;
-        private static string _outputPath;
+        private static string inputPath;
+        private static string outputPath;
 
-		/// <summary>
-		/// Entry point for program
-		/// </summary>
-		/// <param name="args">Arguments for Program, First argument is the input path and second argument is the output path</param>
-        static void Main(string[] args)
+        private static bool handleArguments(string[] args)
         {
-	       
-			if (!ValidateArguments(args))
+            if (args.Length != 2)
             {
-                return;
+                Console.WriteLine("Invalid Arguments. Two Arguments are required. Input Path and Ouput File Path are required.");
+                return false;
             }
 
-            var results = Processor.Process(_inputPath);
-            
-            ReportWriter.GenerateReport(_inputPath, _outputPath, results);  
+            var validPaths = testPath(args[0], "Input") && testPath(args[1], "Output");
+
+            if (!validPaths)
+                return false;
+
+            inputPath = args[0];
+            outputPath = args[1];
+
+            return true;
         }
 
-        private static bool ValidateArguments(string[] args)
+        /// <summary>
+        /// Entry point for the program.
+        /// </summary>
+        /// <param name="args">Arguments for the program. First argument is the input path; second argument is the output path.</param>
+        private static void Main(string[] args)
         {
-			if (args.Count() != 2)
-			{
-				Console.WriteLine("Invalid Arguments. Two Arguments are required. Input Path and Ouput File Path are required.");
-				return false;
-			}
+            if (!handleArguments(args))
+                return;
 
-			var result = TestPath(args[0], "Input");
+            var results = Processor.Process(inputPath);
 
-			if (!result)
-				return false;
-
-			_inputPath = args[0];
-
-			result = TestPath(args[1], "Output");
-
-			if (!result)
-				return false;
-
-			_outputPath = args[1];
-
-			return true;
+            ReportWriter.GenerateReport(inputPath, outputPath, results);
         }
 
-        private static bool TestPath(string path, string outputMessageType)
+        private static bool testPath(string path, string directoryType)
         {
-            try
+            if (!Directory.Exists(path))
             {
-                var inputPath = Path.GetFullPath(path);
+                Console.WriteLine("Can't access the {0} directory!", directoryType);
+                return false;
+            }
 
-                if (!Directory.Exists(inputPath))
-                {
-                    Console.WriteLine("The {0} directory does not exist!", outputMessageType);
-                    return false;
-                }
-                return true;
-           }
-           catch(Exception)
-           {
-               Console.WriteLine("The {0} directory is not a valid file path", outputMessageType);
-           }
-            return false;
+            return true;
         }
     }
 }
