@@ -14,5 +14,19 @@
         /// The version of the package
         /// </summary>
         internal string Version { get; set; }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null || !(obj is PackageKey))
+                return false;
+
+            var packageKey = (PackageKey)obj;
+            return packageKey.Id == Id && packageKey.Version == Version;
+        }
+
+        public override int GetHashCode()
+        {
+            return Version.GetHashCode() + Id.GetHashCode();
+        }
     }
 }
