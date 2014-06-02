@@ -42,7 +42,7 @@ namespace NugetPackageReport
                     writer.WriteGeneralInformation(inputFilePath, feedPackages);
                     writer.WriteBreak();
 
-                    writer.RenderBeginTag("table");
+                    writer.RenderBeginTag(HtmlTextWriterTag.Table);
                     {
                         WriteGeneralPageTableHeaders(writer, "Package Name", "Current Version", "Latest Version", "License",
                                                      "Instances");
@@ -65,7 +65,7 @@ namespace NugetPackageReport
 
         private static void GeneratePackagePages(string outputFilePath, Dictionary<PackageKey, FeedPackage> feedPackages)
         {
-            foreach (var package in feedPackages.Where(x => x.Value.CurrentVersion != null))
+            foreach (var package in feedPackages.Where(pckge => pckge.Value.CurrentVersion != null))
             {
                 using (var stringWriter = new StringWriter())
                 {
@@ -194,16 +194,19 @@ namespace NugetPackageReport
                                                     Dictionary<PackageKey, FeedPackage> feedPackages)
         {
             writer.WriteBreak();
-            writer.WriteLine("Searched Directory {0}", inputFilePath);
+            writer.WriteLine("Searched Directory {0}", Path.GetFullPath(inputFilePath));
             writer.WriteBreak();
-            writer.WriteLine("Found {0} Nuget Packages in {1} projects", feedPackages.Count,
-                             feedPackages.Values.SelectMany(x => x.ProjectNames).Distinct().Count());
+            writer.WriteBreak();
+            var projectCount = feedPackages.Values.SelectMany(x => x.ProjectNames).Distinct().Count();
+            writer.WriteLine("Found {0} Nuget Packages in {1} {2}", feedPackages.Count,
+                             projectCount, projectCount > 1 ? "projects" : "project");
             writer.WriteBreak();
         }
 
         private static void WriteGeneralPagePackageRows(HtmlTextWriter writer, KeyValuePair<PackageKey, FeedPackage> package)
         {
-            if (package.Value.CurrentVersion != null && package.Value.LatestVersion != null && package.Value.CurrentVersion.Version != package.Value.LatestVersion.Version)
+            if (package.Value.CurrentVersion != null && package.Value.LatestVersion != null &&
+                package.Value.CurrentVersion.Version != package.Value.LatestVersion.Version)
             {
                 writer.AddAttribute(HtmlTextWriterAttribute.Bgcolor, "#CCCC00;");
             }
