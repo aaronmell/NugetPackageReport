@@ -12,43 +12,7 @@ namespace NugetPackageReport
         private static string inputPath;
         private static string outputPath;
 
-        /// <summary>
-        /// Entry point for program
-        /// </summary>
-        /// <param name="args">Arguments for Program, First argument is the input path and second argument is the output path</param>
-        private static void Main(string[] args)
-        {
-            if (!validateArguments(args))
-            {
-                return;
-            }
-
-            var results = Processor.Process(inputPath);
-
-            ReportWriter.GenerateReport(inputPath, outputPath, results);
-        }
-
-        private static bool testPath(string path, string outputMessageType)
-        {
-            try
-            {
-                var inputPath = Path.GetFullPath(path);
-
-                if (!Directory.Exists(inputPath))
-                {
-                    Console.WriteLine("The {0} directory does not exist!", outputMessageType);
-                    return false;
-                }
-                return true;
-            }
-            catch (Exception)
-            {
-                Console.WriteLine("The {0} directory is not a valid file path", outputMessageType);
-            }
-            return false;
-        }
-
-        private static bool validateArguments(string[] args)
+        private static bool handleArguments(string[] args)
         {
             if (args.Length != 2)
             {
@@ -56,19 +20,38 @@ namespace NugetPackageReport
                 return false;
             }
 
-            var result = testPath(args[0], "Input");
+            var validPaths = testPath(args[0], "Input") && testPath(args[1], "Output");
 
-            if (!result)
+            if (!validPaths)
                 return false;
 
             inputPath = args[0];
-
-            result = testPath(args[1], "Output");
-
-            if (!result)
-                return false;
-
             outputPath = args[1];
+
+            return true;
+        }
+
+        /// <summary>
+        /// Entry point for the program.
+        /// </summary>
+        /// <param name="args">Arguments for the program. First argument is the input path; second argument is the output path.</param>
+        private static void Main(string[] args)
+        {
+            if (!handleArguments(args))
+                return;
+
+            var results = Processor.Process(inputPath);
+
+            ReportWriter.GenerateReport(inputPath, outputPath, results);
+        }
+
+        private static bool testPath(string path, string directoryType)
+        {
+            if (!Directory.Exists(path))
+            {
+                Console.WriteLine("Can't access the {0} directory!", directoryType);
+                return false;
+            }
 
             return true;
         }
