@@ -4,57 +4,31 @@ using System.Linq;
 
 namespace NugetPackageReport
 {
-	/// <summary>
-	/// Main Program
-	/// </summary>
+    /// <summary>
+    /// Main Program
+    /// </summary>
     public class Program
     {
-        private static string _inputPath;
-        private static string _outputPath;
+        private static string inputPath;
+        private static string outputPath;
 
-		/// <summary>
-		/// Entry point for program
-		/// </summary>
-		/// <param name="args">Arguments for Program, First argument is the input path and second argument is the output path</param>
-        static void Main(string[] args)
+        /// <summary>
+        /// Entry point for program
+        /// </summary>
+        /// <param name="args">Arguments for Program, First argument is the input path and second argument is the output path</param>
+        private static void Main(string[] args)
         {
-	       
-			if (!ValidateArguments(args))
+            if (!validateArguments(args))
             {
                 return;
             }
 
-            var results = Processor.Process(_inputPath);
-            
-            ReportWriter.GenerateReport(_inputPath, _outputPath, results);  
+            var results = Processor.Process(inputPath);
+
+            ReportWriter.GenerateReport(inputPath, outputPath, results);
         }
 
-        private static bool ValidateArguments(string[] args)
-        {
-			if (args.Count() != 2)
-			{
-				Console.WriteLine("Invalid Arguments. Two Arguments are required. Input Path and Ouput File Path are required.");
-				return false;
-			}
-
-			var result = TestPath(args[0], "Input");
-
-			if (!result)
-				return false;
-
-			_inputPath = args[0];
-
-			result = TestPath(args[1], "Output");
-
-			if (!result)
-				return false;
-
-			_outputPath = args[1];
-
-			return true;
-        }
-
-        private static bool TestPath(string path, string outputMessageType)
+        private static bool testPath(string path, string outputMessageType)
         {
             try
             {
@@ -66,12 +40,37 @@ namespace NugetPackageReport
                     return false;
                 }
                 return true;
-           }
-           catch(Exception)
-           {
-               Console.WriteLine("The {0} directory is not a valid file path", outputMessageType);
-           }
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("The {0} directory is not a valid file path", outputMessageType);
+            }
             return false;
+        }
+
+        private static bool validateArguments(string[] args)
+        {
+            if (args.Length != 2)
+            {
+                Console.WriteLine("Invalid Arguments. Two Arguments are required. Input Path and Ouput File Path are required.");
+                return false;
+            }
+
+            var result = testPath(args[0], "Input");
+
+            if (!result)
+                return false;
+
+            inputPath = args[0];
+
+            result = testPath(args[1], "Output");
+
+            if (!result)
+                return false;
+
+            outputPath = args[1];
+
+            return true;
         }
     }
 }
