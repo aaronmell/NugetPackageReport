@@ -57,10 +57,10 @@ namespace NugetPackageReport
             foreach (var packageElement in XDocument.Load(packageConfigPath).Descendants(packageElementName))
             {
                 yield return new PackageKey
-                {
-                    Id = packageElement.Attribute("id").Value,
-                    Version = packageElement.Attribute("version").Value,
-                };
+                (
+                    id: packageElement.Attribute("id").Value,
+                    version: packageElement.Attribute("version").Value
+                );
             }
         }
 
