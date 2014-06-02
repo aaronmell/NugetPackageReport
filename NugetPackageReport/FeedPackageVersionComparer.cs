@@ -1,4 +1,5 @@
 ﻿using NugetPackageReport.Nuget;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -30,22 +31,21 @@ namespace NugetPackageReport
             var splitStringsX = versionX.Split('.');
             var splitStringsY = versionY.Split('.');
 
-            var result = CheckVersion(splitStringsX[0], splitStringsY[0]);
+            for (int i = 0; i < Math.Min(splitStringsX.Length, splitStringsY.Length); i++)
+            {
+                var result = CheckVersion(splitStringsX[i], splitStringsY[i]);
 
-            if (result != 0)
-                return result;
+                if (result != 0)
+                    return result;
+            }
 
-            result = CheckVersion(splitStringsX.Count() >= 2 ? splitStringsX[1] : "0", splitStringsY.Count() >= 2 ? splitStringsY[1] : "0");
+            if (splitStringsX.Length > splitStringsY.Length)
+                return 1;
 
-            if (result != 0)
-                return result;
+            if (splitStringsX.Length < splitStringsY.Length)
+                return -1;
 
-            result = CheckVersion(splitStringsX.Count() >= 3 ? splitStringsX[2] : "0", splitStringsY.Count() >= 3 ? splitStringsY[2] : "0");
-
-            if (result != 0)
-                return result;
-
-            return CheckVersion(splitStringsX.Count() >= 4 ? splitStringsX[3] : "0", splitStringsY.Count() >= 4 ? splitStringsY[3] : "0");
+            return 0;
         }
 
         private int CheckVersion(string x, string y)
@@ -56,7 +56,7 @@ namespace NugetPackageReport
             if (intX > intY)
                 return 1;
 
-            if (intY > intX)
+            if (intX < intY)
                 return -1;
 
             return 0;
